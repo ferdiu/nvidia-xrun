@@ -1,6 +1,16 @@
-# nvidia-xrun
+# nvidia-xrun (working alongside bumblebee in Debian)
 These utility scripts aim to make the life easier for nvidia cards users.
 It started with a revelation that bumblebee in current state offers very poor performance. This solution offers a bit more complicated procedure but offers a full GPU utilization(in terms of linux drivers)
+
+## IMPORTANT NOTICE
+
+This is a fork of the repository [Witko](https://github.com/Witko/nvidia-xrun) to make his script work in **Debian** (**and Debian only!!!**) alongside [Bumblebee](https://github.com/Bumblebee-Project/Bumblebee).
+
+Alongside doesn't mean at the same time: you can't run an nvidia-xrun session while using optirun/primusrun and viceversa.
+
+My advice is to just switch to nvidia-xrun session when is required to start a heavy GPU program (like Gaming) and use primusrun for the middle-range GPU demanding programs.
+
+**Do not try to use this in other distros whitouth applying the proper modifications**. It just won't work.
 
 ## Usage:
   1. switch to free tty
@@ -21,25 +31,28 @@ The service can be enabled with this command:
 # systemctl enable nvidia-xrun-pm
 ```
 
+**but if using along side with bumblebee just don't do that**: bumblebee bbswitch method will be used instead.
+
 When the nvidia-xrun command is used, the device is added again to the tree so that the nvidia module can be loaded properly: nvidia-xrun will remove the device and enable PM again after the application terminates.
 
 ## Structure
 * **nvidia-xrun** - uses following dir structure:
 * **/usr/bin/nvidia-xrun** - the executable script
-* **/etc/X11/nvidia-xorg.conf** - the main X confing file
+* **/etc/X11/xorg.nvidia-xrun.conf** - the main X confing file
 * **/etc/X11/xinit/nvidia-xinitrc** - xinitrc config file. Contains the setting of provider output source
 * **/etc/X11/xinit/nvidia-xinitrc.d** - custom xinitrc scripts directory
-* **/etc/X11/nvidia-xorg.conf.d** - custom X config directory
+* **/etc/X11/xorg.nvidia-xrun.conf.d** - custom X config directory
 * **/etc/systemd/system/nvidia-xrun-pm.service** systemd service
 * **/etc/default/nvidia-xrun** - nvidia-xrun config file
 * **/usr/share/xsessions/nvidia-xrun-openbox.desktop** - xsession file for openbox
 * **/usr/share/xsessions/nvidia-xrun-plasma.desktop** - xsession file for plasma
+* **/usr/share/xsessions/nvidia-xrun-gnome.desktop** - xsession file for GNOME
 * **[OPTIONAL] $XDG_CONFIG_HOME/X11/nvidia-xinitrc** - user-level custom xinit script file. You can put here your favourite window manager for example
 
 
 ## Setting the right bus id
 Usually the 1:0:0 bus is correct. If this is not your case(you can find out through lspci or bbswitch output mesages) you can create
-a conf script for example `nano /etc/X11/nvidia-xorg.conf.d/30-nvidia.conf` to set the proper bus id:
+a conf script for example `nano /etc/X11/xorg.nvidia-xrun.conf.d/30-nvidia.conf` to set the proper bus id:
 
     Section "Device"
         Identifier "nvidia"

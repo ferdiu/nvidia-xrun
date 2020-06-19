@@ -3,7 +3,10 @@
 # the modules gets unloaded. If order for this to work, CONTROLLER_BUS_ID and
 # DEVICE_BUS_ID must be set correctly. IDs can be found by by inspecting the
 # output of lshw.
-ENABLE_PM=1
+# 0 = disable power managment
+# 1 = enable nvidia-xrun power managment
+# 2 = enable bumblebee power managment
+ENABLE_PM=2
 
 # When PM is enabled, remove the card from the system after the command exists
 # and modules unload: the card will be readded in the next nvidia-xrun
@@ -11,7 +14,8 @@ ENABLE_PM=1
 # and some other programs tend to load the nvidia module if they detect a
 # nvidia card in the system, and when the module is loaded the card can't save
 # power.
-REMOVE_DEVICE=1
+# DO NOT USE WITH BUMBLEBEE
+REMOVE_DEVICE=0
 
 # Bus ID of the PCI express controller
 CONTROLLER_BUS_ID=0000:00:01.0

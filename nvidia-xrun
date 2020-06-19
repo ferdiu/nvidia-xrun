@@ -31,6 +31,13 @@ function turn_off_gpu {
   execute "sudo tee /sys/bus/pci/devices/${CONTROLLER_BUS_ID}/power/control <<<auto"
 }
 
+function turn_off_gpu_bumblebee {
+  echo 'Turning off dGPU using bumblebee method'
+  execute "sudo tee /proc/acpi/bbswitch <<<OFF"
+
+  echo "Now the dGPU is `cat /proc/acpi/bbswitch | awk '{printf $2}'`"
+}
+
 function turn_on_gpu {
   echo 'Turning the PCIe controller on to allow card rescan'
   execute "sudo tee /sys/bus/pci/devices/${CONTROLLER_BUS_ID}/power/control <<<on"
@@ -49,6 +56,13 @@ function turn_on_gpu {
   execute "sudo tee /sys/bus/pci/devices/${DEVICE_BUS_ID}/power/control <<<on"
 }
 
+function turn_on_gpu_bumblebee {
+  echo 'Turning on dGPU using bumblebee method'
+  execute "sudo tee /proc/acpi/bbswitch <<<ON"
+
+  echo "Now the dGPU is `cat /proc/acpi/bbswitch | awk '{printf $2}'`"
+}
+
 function load_modules {
   for module in "${MODULES_LOAD[@]}"
   do
@@ -58,10 +72,13 @@ function load_modules {
 }
 
 function unload_modules {
+  # need to stop the nvidia-persistenced service in order to make the card go back to sleep
+  test "active" = "`systemctl status nvidia-persistenced.service | grep Active | awk '{printf $2}'`" && sudo systemctl stop nvidia-persistenced && sleep 3
   for module in "${MODULES_UNLOAD[@]}"
   do
     echo "Unloading module ${module}"
     execute "sudo modprobe -r ${module}"
+    test "$?" -ne 0 && sudo systemctl restart bumblebeed && echo "Waiting 3 seconds to let bumblebee restart and release \"${module}\" module" && sleep 3 && sudo modprobe -r ${module}
   done
 }
 
@@ -122,18 +139,23 @@ fi
 
 EXECL="/etc/X11/xinit/nvidia-xinitrc \"$EXECL\""
 
-COMMAND="xinit $EXECL -- $NEWDISP vt$LVT -nolisten tcp -br -config nvidia-xorg.conf -configdir nvidia-xorg.conf.d"
+COMMAND="xinit $EXECL -- $NEWDISP vt$LVT -nolisten tcp -br -config xorg.nvidia-xrun.conf -configdir xorg.nvidia-xrun.conf.d"
 
 # --------- TURNING ON GPU -----------
 if [[ "$ENABLE_PM" == '1' ]]; then
   turn_on_gpu
+elif [[ "$ENABLE_PM" == '2' ]]; then
+  turn_on_gpu_bumblebee
 fi
 
 # ---------- LOADING MODULES ----------
 load_modules
 
 # ---------- EXECUTING COMMAND --------
+export NVRUN_NVIDIA_SESSION=1
 execute ${COMMAND}
+sleep 3
+unset NVRUN_NVIDIA_SESSION
 
 # ---------- UNLOADING MODULES --------
 unload_modules
@@ -141,4 +163,13 @@ unload_modules
 # --------- TURNING OFF GPU ----------
 if [[ "$ENABLE_PM" == '1' ]]; then
   turn_off_gpu
+elif [[ "$ENABLE_PM" == '2' ]]; then
+  turn_off_gpu_bumblebee
+fi
+
+# ---------- CHECK MODULES ----------
+if [[ -z "`lsmod | grep nvidia`" ]]; then
+  echo "Modules unloaded correctly"
+else
+  echo Still module\(s\) loaded: `lsmod | grep nvidia | awk '{printf $1" "}'`
 fi

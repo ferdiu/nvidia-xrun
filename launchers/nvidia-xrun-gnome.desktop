@@ -1,0 +1,8 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=GNOME(Nvidia Xrun)
+Comment=GNOME running with nvidia-xrun
+Type=XSession
+Exec=/usr/bin/nvidia-xrun /usr/bin/gnome-session
+TryExec=/usr/bin/nvidia-xrun /usr/bin/gnome-session
+DesktopNames=GNOME
