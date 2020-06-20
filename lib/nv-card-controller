@@ -1,0 +1,79 @@
+#!/bin/bash
+
+function usage() {
+  echo "Usage:"
+  echo -e "\t$0 [xrun|bumblebee] [on|off]"
+}
+
+function execute() {
+  eval $*
+}
+
+function turn_off_gpu_xrun_method() {
+  if [[ "$REMOVE_DEVICE" == '1' ]]; then
+    echo 'Removing Nvidia bus from the kernel'
+    execute "tee /sys/bus/pci/devices/${DEVICE_BUS_ID}/remove <<<1"
+  else
+    echo 'Enabling powersave for the graphic card'
+    execute "tee /sys/bus/pci/devices/${DEVICE_BUS_ID}/power/control <<<auto"
+  fi
+
+  echo 'Enabling powersave for the PCIe controller'
+  execute "tee /sys/bus/pci/devices/${CONTROLLER_BUS_ID}/power/control <<<auto"
+}
+
+function turn_off_gpu_bumblebee_method {
+  echo 'Turning off dGPU using bumblebee method'
+  execute "tee /proc/acpi/bbswitch <<<OFF"
+
+  echo "Now the dGPU is `cat /proc/acpi/bbswitch | awk '{printf $2}'`"
+}
+
+function turn_on_gpu_xrun_method {
+  echo 'Turning the PCIe controller on to allow card rescan'
+  execute "tee /sys/bus/pci/devices/${CONTROLLER_BUS_ID}/power/control <<<on"
+
+  echo 'Waiting 1 second'
+  execute "sleep 1"
+
+  if [[ ! -d /sys/bus/pci/devices/${DEVICE_BUS_ID} ]]; then
+    echo 'Rescanning PCI devices'
+    execute "tee /sys/bus/pci/rescan <<<1"
+    echo "Waiting ${BUS_RESCAN_WAIT_SEC} second for rescan"
+    execute "sleep ${BUS_RESCAN_WAIT_SEC}"
+  fi
+
+  echo 'Turning the card on'
+  execute "tee /sys/bus/pci/devices/${DEVICE_BUS_ID}/power/control <<<on"
+}
+
+function turn_on_gpu_bumblebee_method {
+  echo 'Turning on dGPU using bumblebee method'
+  execute "tee /proc/acpi/bbswitch <<<ON"
+
+  echo "Now the dGPU is `cat /proc/acpi/bbswitch | awk '{printf $2}'`"
+}
+
+. /etc/default/nvidia-xrun
+
+# this is used by the systemd service to turn off the gpu at boot
+if [[ "$TURN_OFF_GPU_ONLY" == '1' ]]; then
+  turn_off_gpu_xrun_method && exit 0
+fi
+
+if [[ -z "$1" ]] || [[ -z "$2" ]]; then
+  usage
+  exit 1
+fi
+
+if [[ "$1" != "xrun" ]] && [[ "$1" != "bumblebee" ]]; then
+  usage
+  exit 1
+fi
+
+if [[ "$2" != "on" ]] && [[ "$2" != "off" ]]; then
+  usage
+  exit 1
+fi
+
+turn_${2}_gpu_${1}_method

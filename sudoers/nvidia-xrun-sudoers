@@ -1,0 +1,1 @@
+%nvxrun ALL=NOPASSWD: /usr/lib/nvidia-xrun/nv-modules, /usr/lib/nvidia-xrun/nv-card-controller

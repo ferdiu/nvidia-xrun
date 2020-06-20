@@ -3,6 +3,8 @@
 # the modules gets unloaded. If order for this to work, CONTROLLER_BUS_ID and
 # DEVICE_BUS_ID must be set correctly. IDs can be found by by inspecting the
 # output of lshw.
+# if setting this to 1 do not forget to enable the xrun-pm service running
+# systemctl enable nvidia-xrun-pm
 # 0 = disable power managment
 # 1 = enable nvidia-xrun power managment
 # 2 = enable bumblebee power managment
@@ -31,3 +33,6 @@ MODULES_LOAD=(nvidia nvidia_uvm nvidia_modeset "nvidia_drm modeset=1")
 
 # Ordered list of modules to unload after the command exits
 MODULES_UNLOAD=(nvidia_drm nvidia_modeset nvidia_uvm nvidia)
+
+# Group that will manage the nvidia modules load and unload
+NVXRUN_GROUP=nvxrun

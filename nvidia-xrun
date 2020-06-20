@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 DRY_RUN=0
 function printHelp {
@@ -18,70 +18,6 @@ function execute {
   fi
 }
 
-function turn_off_gpu {
-  if [[ "$REMOVE_DEVICE" == '1' ]]; then
-    echo 'Removing Nvidia bus from the kernel'
-    execute "sudo tee /sys/bus/pci/devices/${DEVICE_BUS_ID}/remove <<<1"
-  else
-    echo 'Enabling powersave for the graphic card'
-    execute "sudo tee /sys/bus/pci/devices/${DEVICE_BUS_ID}/power/control <<<auto"
-  fi
-
-  echo 'Enabling powersave for the PCIe controller'
-  execute "sudo tee /sys/bus/pci/devices/${CONTROLLER_BUS_ID}/power/control <<<auto"
-}
-
-function turn_off_gpu_bumblebee {
-  echo 'Turning off dGPU using bumblebee method'
-  execute "sudo tee /proc/acpi/bbswitch <<<OFF"
-
-  echo "Now the dGPU is `cat /proc/acpi/bbswitch | awk '{printf $2}'`"
-}
-
-function turn_on_gpu {
-  echo 'Turning the PCIe controller on to allow card rescan'
-  execute "sudo tee /sys/bus/pci/devices/${CONTROLLER_BUS_ID}/power/control <<<on"
-
-  echo 'Waiting 1 second'
-  execute "sleep 1"
-
-  if [[ ! -d /sys/bus/pci/devices/${DEVICE_BUS_ID} ]]; then
-    echo 'Rescanning PCI devices'
-    execute "sudo tee /sys/bus/pci/rescan <<<1"
-    echo "Waiting ${BUS_RESCAN_WAIT_SEC} second for rescan"
-    execute "sleep ${BUS_RESCAN_WAIT_SEC}"
-  fi
-
-  echo 'Turning the card on'
-  execute "sudo tee /sys/bus/pci/devices/${DEVICE_BUS_ID}/power/control <<<on"
-}
-
-function turn_on_gpu_bumblebee {
-  echo 'Turning on dGPU using bumblebee method'
-  execute "sudo tee /proc/acpi/bbswitch <<<ON"
-
-  echo "Now the dGPU is `cat /proc/acpi/bbswitch | awk '{printf $2}'`"
-}
-
-function load_modules {
-  for module in "${MODULES_LOAD[@]}"
-  do
-    echo "Loading module ${module}"
-    execute "sudo modprobe ${module}"
-  done
-}
-
-function unload_modules {
-  # need to stop the nvidia-persistenced service in order to make the card go back to sleep
-  test "active" = "`systemctl status nvidia-persistenced.service | grep Active | awk '{printf $2}'`" && sudo systemctl stop nvidia-persistenced && sleep 3
-  for module in "${MODULES_UNLOAD[@]}"
-  do
-    echo "Unloading module ${module}"
-    execute "sudo modprobe -r ${module}"
-    test "$?" -ne 0 && sudo systemctl restart bumblebeed && echo "Waiting 3 seconds to let bumblebee restart and release \"${module}\" module" && sleep 3 && sudo modprobe -r ${module}
-  done
-}
-
 if [[ "$1" == "-d" ]]
   then
     DRY_RUN=1
@@ -91,13 +27,8 @@ fi
 # load config file
 . /etc/default/nvidia-xrun
 
-# this is used by the systemd service to turn off the gpu at boot
-if [[ "$TURN_OFF_GPU_ONLY" == '1' ]]; then
-  turn_off_gpu && exit 0
-fi
-
 if [[ $EUID -eq 0 ]]; then
-   echo "This script must not be run as root unless TURN_OFF_GPU_ONLY=1 is set" >&2
+   echo "This script must not be run as root" >&2
    exit 1
 fi
 
@@ -143,13 +74,13 @@ COMMAND="xinit $EXECL -- $NEWDISP vt$LVT -nolisten tcp -br -config xorg.nvidia-x
 
 # --------- TURNING ON GPU -----------
 if [[ "$ENABLE_PM" == '1' ]]; then
-  turn_on_gpu
+  sudo /usr/lib/nvidia-xrun/nv-card-controller xrun on
 elif [[ "$ENABLE_PM" == '2' ]]; then
-  turn_on_gpu_bumblebee
+  sudo /usr/lib/nvidia-xrun/nv-card-controller bumblebee on
 fi
 
 # ---------- LOADING MODULES ----------
-load_modules
+sudo /usr/lib/nvidia-xrun/nv-modules load
 
 # ---------- EXECUTING COMMAND --------
 export NVRUN_NVIDIA_SESSION=1
@@ -158,13 +89,13 @@ sleep 3
 unset NVRUN_NVIDIA_SESSION
 
 # ---------- UNLOADING MODULES --------
-unload_modules
+sudo /usr/lib/nvidia-xrun/nv-modules unload
 
 # --------- TURNING OFF GPU ----------
 if [[ "$ENABLE_PM" == '1' ]]; then
-  turn_off_gpu
+  sudo /usr/lib/nvidia-xrun/nv-card-controller xrun off
 elif [[ "$ENABLE_PM" == '2' ]]; then
-  turn_off_gpu_bumblebee
+  sudo /usr/lib/nvidia-xrun/nv-card-controller bumblebee off
 fi
 
 # ---------- CHECK MODULES ----------

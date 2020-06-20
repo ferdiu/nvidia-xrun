@@ -12,13 +12,32 @@ My advice is to just switch to nvidia-xrun session when is required to start a h
 
 **Do not try to use this in other distros whitouth applying the proper modifications**. It just won't work.
 
+## Configuration:
+This is required to launch `nvidia-xrun` without typing any password.
+
+If you installed manually you need to add a system group:
+
+```
+# groupadd --system nvxrun
+```
+
+and then add the user that is going to use `nvidia-xrun` to that group:
+
+```
+# adduser [YOUR_USERNAME] nvxrun
+```
+
+you will need to reload sudo service:
+
+```
+# systemctl reload sudo
+```
+
 ## Usage:
   1. switch to free tty
   1. login
   1. run `nvidia-xrun [app]`
   1. enjoy
-
-Currently sudo is required as the script needs to wake up GPU, modprobe the nvidia driver and perform cleanup afterwards.
 
 The systemd service can be used to completely remove the card from the kernel
 device tree (so that it won't even show in `lspci` output), and this will
@@ -38,10 +57,13 @@ When the nvidia-xrun command is used, the device is added again to the tree so t
 ## Structure
 * **nvidia-xrun** - uses following dir structure:
 * **/usr/bin/nvidia-xrun** - the executable script
+* **/usr/lib/nvidia-xrun/nv-card-controller** - the executable script for controlling PM of the dGPU
+* **/usr/lib/nvidia-xrun/nv-modules** - the executable script for loading and unloading nvidia modules
 * **/etc/X11/xorg.nvidia-xrun.conf** - the main X confing file
 * **/etc/X11/xinit/nvidia-xinitrc** - xinitrc config file. Contains the setting of provider output source
 * **/etc/X11/xinit/nvidia-xinitrc.d** - custom xinitrc scripts directory
 * **/etc/X11/xorg.nvidia-xrun.conf.d** - custom X config directory
+* **/etc/sudoers.d/nvidia-xrun-sudoers** - sudoers file
 * **/etc/systemd/system/nvidia-xrun-pm.service** systemd service
 * **/etc/default/nvidia-xrun** - nvidia-xrun config file
 * **/usr/share/xsessions/nvidia-xrun-openbox.desktop** - xsession file for openbox
