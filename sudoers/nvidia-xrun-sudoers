@@ -1,1 +1,1 @@
-%nvxrun ALL=NOPASSWD: /usr/lib/nvidia-xrun/nv-modules, /usr/lib/nvidia-xrun/nv-card-controller
+%nvxrun ALL=NOPASSWD: /usr/lib/nvidia-xrun/nv-modules, /usr/lib/nvidia-xrun/nv-card-controller, /usr/lib/nvidia-xrun/nv-brightness

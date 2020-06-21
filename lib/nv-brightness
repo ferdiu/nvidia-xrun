@@ -1,0 +1,78 @@
+#!/bin/bash
+
+function apply_new() {
+  echo "$NEW" > $DEST_FILE
+  get_now
+}
+
+function clamp_brightness() {
+  if [[ $NEW -le 0 ]]; then
+    NEW=0
+  elif [[ $NEW -ge $MAX ]]; then
+    NEW=$MAX
+  fi
+}
+
+function bright_up() {
+  NEW=$(($ACTUAL + $STEP))
+}
+
+function bright_down() {
+  NEW=$(($ACTUAL - $STEP))
+}
+
+function toggle() {
+  if [[ $ACTUAL -eq 0 ]]; then
+    NEW=$LAST
+  else
+    echo "$ACTUAL" > $TMP_FILE
+    NEW=$OFF
+  fi
+}
+
+function get() {
+  echo $(($ACTUAL * 100 / $MAX))
+}
+
+function get_now() {
+  echo $((`cat ${SYS_DIR}/actual_brightness` * 100 / $MAX))
+}
+
+function usage() {
+  echo -e "Usage:\n\t$0 [up|down|toggle|get]"
+}
+
+TMP_FILE=/tmp/nvidia-xrun.brightness
+
+SYS_DIR=/sys/class/backlight/intel_backlight
+DEST_FILE=$SYS_DIR/brightness
+
+MAX=`cat ${SYS_DIR}/max_brightness`
+OFF=0
+STEP=$(($MAX / 10))
+ACTUAL=`cat ${SYS_DIR}/actual_brightness`
+LAST=$MAX
+
+if [[ -e TMP_FILE ]]; then
+  LAST="`cat $TMP_FILE`"
+fi
+
+NEW=
+
+if [[ -z $1 ]]; then
+  usage
+  exit 1
+fi
+
+case $1 in
+  up) bright_up;;
+  down) bright_down;;
+  toggle) toggle;;
+  get) get; exit 0;;
+  *) usage; exit 1;;
+esac
+
+clamp_brightness
+apply_new
+
+exit 0

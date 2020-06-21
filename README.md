@@ -59,6 +59,7 @@ When the nvidia-xrun command is used, the device is added again to the tree so t
 * **/usr/bin/nvidia-xrun** - the executable script
 * **/usr/lib/nvidia-xrun/nv-card-controller** - the executable script for controlling PM of the dGPU
 * **/usr/lib/nvidia-xrun/nv-modules** - the executable script for loading and unloading nvidia modules
+* **/usr/lib/nvidia-xrun/nv-brightness** - if having troubles with monitor backlight when in nvidia-xrun session reference this script to change brightness (possible arguments: [up|down|toggle|get])
 * **/etc/X11/xorg.nvidia-xrun.conf** - the main X confing file
 * **/etc/X11/xinit/nvidia-xinitrc** - xinitrc config file. Contains the setting of provider output source
 * **/etc/X11/xinit/nvidia-xinitrc.d** - custom xinitrc scripts directory
