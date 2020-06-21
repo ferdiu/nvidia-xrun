@@ -123,6 +123,9 @@ With this you do not need to specify the app and you can simply run:
 
     nvidia-xrun
 
+## DEB Package
+The Debian package (not Ubuntu and derivates) can be found [here](https://ferdiu.github.io/debs/nvidia-xrun_0.3.1-1.deb)
+
 ## AUR Package
 The Arch Linux User Repository package can be found [here](https://aur.archlinux.org/packages/nvidia-xrun/).
 
